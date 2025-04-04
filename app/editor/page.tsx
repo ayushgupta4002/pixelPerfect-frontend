@@ -10,6 +10,7 @@ import { ImageIcon, HelpCircle, DownloadIcon, RefreshCw, FlipHorizontal, FlipVer
 import { Slider } from "@/components/ui/slider";
 import ReactCrop, { Crop } from 'react-image-crop'
 import dynamic from 'next/dynamic'
+import Link from 'next/link';
 
 // Import the component with dynamic import and disable SSR
 const Cropper = dynamic(
@@ -27,12 +28,17 @@ export default function Home() {
   const [isSliding, setIsSliding] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [borderWidth, setBorderWidth] = useState(5); // Default border width in pixels
+const [borderColor, setBorderColor] = useState("#FF0000"); // 
+
 
   const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
-    // Store crop data but don't console.log here
-    console.log(croppedArea, croppedAreaPixels);
-    // setCroppedAreaPixels(croppedAreaPixels);
-  }, []);
+    // Store crop data without logging it to avoid unnecessary renders
+console.log("croppedarea") 
+
+}, []);
+  console.log("hi");
 
   const [sizeUnit, setSizeUnit] = useState("px");
   const [operation, setOperation] = useState("resize");
@@ -181,6 +187,12 @@ export default function Home() {
         formData.append("height", dimensions.height.toString());
       }
 
+      if (operation === "border") {
+        formData.append("border_width", borderWidth.toString());
+        // Remove the # from hex color and append
+        formData.append("border_color", borderColor.replace('#', ''));
+      }
+
       // Update last applied edit
       lastAppliedEdit.current = {
         operation,
@@ -320,7 +332,9 @@ export default function Home() {
     <div className="flex flex-col h-screen bg-zinc-900 text-slate-200">
       {/* Top Navigation Bar */}
       <div className="bg-zinc-950 px-6 py-4 flex items-center justify-between shadow-lg border-b border-zinc-800">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-200 to-slate-400 bg-clip-text text-transparent">PHOTOX</h1>
+      <Link href={"/"}>
+      <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-200 cursor-pointer to-slate-400 bg-clip-text text-transparent">PixelPerfect</h1>
+      </Link>
         <div className="flex space-x-3">
           {processedImage && (
             <Button
@@ -373,6 +387,8 @@ export default function Home() {
                     <SelectItem value="flip">Flip & Rotate</SelectItem>
                     <SelectItem value="edit">Edit</SelectItem>
                     <SelectItem value="crop">Crop</SelectItem>
+                    <SelectItem value="border">Border</SelectItem>
+
                   </SelectContent>
                 </Select>
               </div>
@@ -592,6 +608,42 @@ export default function Home() {
                   </div>
                 </div>
               )}
+
+{operation === "border" && (
+  <div className="space-y-4">
+    <Label className="text-slate-300 text-sm uppercase tracking-wider font-semibold mb-2 block">Border Options</Label>
+    <div>
+      <Label htmlFor="borderWidth" className="text-slate-300 text-sm mb-1 block">Width (px)</Label>
+      <Input
+        id="borderWidth"
+        type="number"
+        min="1"
+        max="100"
+        value={borderWidth}
+        onChange={(e) => setBorderWidth(parseInt(e.target.value))}
+        className="bg-zinc-800 border-zinc-700 text-slate-200 focus:ring-1 focus:ring-slate-400"
+      />
+    </div>
+    <div>
+      <Label htmlFor="borderColor" className="text-slate-300 text-sm mb-1 block">Color</Label>
+      <div className="flex space-x-2">
+        <Input
+          id="borderColor"
+          type="color"
+          value={borderColor}
+          onChange={(e) => setBorderColor(e.target.value)}
+          className="bg-zinc-800 border-zinc-700 w-12 h-10 p-1"
+        />
+        <Input
+          type="text"
+          value={borderColor}
+          onChange={(e) => setBorderColor(e.target.value)}
+          className="bg-zinc-800 border-zinc-700 text-slate-200 focus:ring-1 focus:ring-slate-400 flex-1"
+        />
+      </div>
+    </div>
+  </div>
+)}
               
               {operation !== "edit" && 
               <Button
@@ -604,6 +656,8 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+
 
         {/* Main Content Area */}
         <div className="flex-1 bg-zinc-900 bg-[radial-gradient(ellipse_at_top_right,_rgba(30,30,40,0.4),_transparent_70%)] p-8 overflow-y-auto">
