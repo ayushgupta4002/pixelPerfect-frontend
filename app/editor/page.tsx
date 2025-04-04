@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,12 +30,14 @@ export default function Home() {
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [borderWidth, setBorderWidth] = useState(5); // Default border width in pixels
-const [borderColor, setBorderColor] = useState("#FF0000"); // 
+   const [borderColor, setBorderColor] = useState("#FF0000"); // 
 
 
   const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
     // Store crop data without logging it to avoid unnecessary renders
-console.log("croppedarea") 
+console.log("croppedarea" , croppedArea) 
+console.log("croppedAreaPixels", croppedAreaPixels)
+setCroppedAreaPixels(croppedAreaPixels);
 
 }, []);
   console.log("hi");
@@ -62,6 +64,13 @@ console.log("croppedarea")
   const currentImageDimensions = processedImage ? 
     (operation === "resize" ? dimensions : originalDimensions) : 
     originalDimensions;
+
+  const imageUrl = useMemo(() => {
+    if (selectedImage) {
+      return URL.createObjectURL(selectedImage);
+    }
+    return null;
+  }, [selectedImage]);
 
   useEffect(() => {
     // Update dimensions when aspect ratio is locked
@@ -116,6 +125,15 @@ console.log("croppedarea")
       setProcessedImage(null);
     }
   }, [operation, selectedImage]);
+
+  // Clean up the URL when component unmounts or selectedImage changes
+  useEffect(() => {
+    return () => {
+      if (imageUrl) {
+        URL.revokeObjectURL(imageUrl);
+      }
+    };
+  }, [imageUrl]);
 
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
@@ -187,11 +205,24 @@ console.log("croppedarea")
         formData.append("height", dimensions.height.toString());
       }
 
+      if(operation === "crop") {
+        const data = {
+          x : Math.floor(croppedAreaPixels?.x),
+          y : Math.floor(croppedAreaPixels?.y),
+          height: Math.floor(croppedAreaPixels?.height),
+          width: Math.floor(croppedAreaPixels?.width)
+        }
+        console.log("data", data)
+        formData.append("crop", JSON.stringify(data));
+      }
+
       if (operation === "border") {
         formData.append("border_width", borderWidth.toString());
         // Remove the # from hex color and append
         formData.append("border_color", borderColor.replace('#', ''));
       }
+
+      formData.get("crop") && console.log("crop", formData.get("crop"));
 
       // Update last applied edit
       lastAppliedEdit.current = {
@@ -706,7 +737,7 @@ console.log("croppedarea")
                       <div className="flex flex-col gap-4 w-full">
                       <div style={{ position: 'relative', width: '100%', height: '300px', maxWidth: '2xl' }} className='rounded shadow-lg'>
                         <Cropper
-                          image={URL.createObjectURL(selectedImage)}
+                          image={imageUrl}
                           crop={crop}
                           zoom={zoom}
                           aspect={4 / 3}
